@@ -86,7 +86,7 @@ pub async fn connect_tee_llm_worker(
   let cid = 15;
   let port = 5005;
   let stream = try_connection(cid, port)?;
-  let (answer_ok_sender, answer_ok_receiver) = unbounded_channel::<TEEResp>();
+  // let (answer_ok_sender, answer_ok_receiver) = unbounded_channel::<TEEResp>();
 
   tee_start_listening(stream, prompt_receiver, answer_ok_sender).await?;
   Ok(())
