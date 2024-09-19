@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::service::llm::{TEEReq, TEEResp};
 use actix_web::{middleware, web, App, HttpServer};
 use tokio::{join, sync::mpsc::{UnboundedReceiver, UnboundedSender}};
+use reqwest::Client;
 
 pub mod router;
 pub struct AgentStateData {
@@ -50,6 +51,17 @@ pub async fn start_agent_client(
       if let Some(res) = answer_ok_receiver.recv().await {
         tracing::info!("receive {:#?}", res);
 
+        let client = Client::new();
+        client
+            .post(format!(
+                "{}{}",
+                "",
+                "/api/submit"
+            ))
+            .header("Content-Type", "application/json; charset=utf-8")
+            .json(&res)
+            .send()
+            .await.ok();
       }
   }
 }
