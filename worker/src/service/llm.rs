@@ -3,15 +3,17 @@ use  tee_llm::nitro_llm;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TEEReq {
+pub use nitro_llm::{TEEReq, TEEResp};
 
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct TEEReq {
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TEEResp {
+// }
+
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct TEEResp {
   
-}
+// }
 
 pub fn try_connection(cid: u32, port: u32) -> anyhow::Result<tokio::net::UnixStream> {
   use nix::sys::socket::{connect, socket, AddressFamily, SockFlag, SockType, VsockAddr};
@@ -81,9 +83,9 @@ pub async fn connect_tee_llm_worker(
   prompt_receiver: UnboundedReceiver<TEEReq>,
   answer_ok_sender: UnboundedSender<TEEResp>,
 ) -> anyhow::Result<()>  {
-  let cid = 100;
-  let port = 3002;
-  let stream = nitro_llm::try_connection(cid, port)?;
+  let cid = 15;
+  let port = 5005;
+  let stream = try_connection(cid, port)?;
   let (answer_ok_sender, answer_ok_receiver) = unbounded_channel::<TEEResp>();
 
   tee_start_listening(stream, prompt_receiver, answer_ok_sender).await?;

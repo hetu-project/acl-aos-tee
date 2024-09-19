@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use actix_web::{web, get, post};
 use serde_json::{json, Value};
+use tee_llm::nitro_llm::PromptReq;
 
 use crate::service::agent::AgentStateData;
 /// WRITE API
@@ -12,7 +13,10 @@ async fn question(
     agent_state: web::Data<Arc<AgentStateData>>,
 ) -> web::Json<Value> {
     tracing::info!("Receive request, body = {:?}", quest);
-    agent_state.prompt_sender.send(crate::service::llm::TEEReq {  }).unwrap();
+    let mut prompt_req = PromptReq::default();
+    prompt_req.prompt = "What is Ai ?".into();
+    let prompt = tee_llm::nitro_llm::TEEReq::PromptReq(prompt_req);
+    agent_state.prompt_sender.send(prompt).unwrap();
     let json_data = json!({
       "answer": ""
     });

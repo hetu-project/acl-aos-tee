@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default=["nitro-enclaves"]
 nitro-enclaves = ["aws-nitro-enclaves-nsm-api", "aws-nitro-enclaves-attestation"]
 
 [dependencies]

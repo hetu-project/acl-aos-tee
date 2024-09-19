@@ -1,0 +1,5 @@
+FROM ubuntu:22.04
+
+COPY ./target/release/tee_llm  models/  ./
+
+CMD ./tee_llm

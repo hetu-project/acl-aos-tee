@@ -33,7 +33,7 @@ pub enum TEEResp {
     AnswerResp(AnswerResp),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PromptReq {
     pub request_id: String,
     pub model_name: String,
