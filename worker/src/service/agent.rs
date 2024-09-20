@@ -92,7 +92,7 @@ pub async fn start_agent_client(
         };
 
           let client = Client::new();
-          client
+          let result = client
               .post(format!(
                   "{}{}",
                   "http://127.0.0.1:21001",
@@ -101,7 +101,17 @@ pub async fn start_agent_client(
               .header("Content-Type", "application/json; charset=utf-8")
               .json(&body)
               .send()
-              .await.ok();
+              .await;
+
+            match result {
+                Ok(res) => {
+                  tracing::debug!("{}", res.status());
+
+                },
+                Err(err) => {
+                  tracing::error!("{}", err);
+                },
+            }
             
         }
       }
