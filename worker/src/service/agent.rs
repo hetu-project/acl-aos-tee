@@ -95,7 +95,7 @@ pub async fn start_agent_client(
           client
               .post(format!(
                   "{}{}",
-                  "",
+                  "http://127.0.0.1:21001",
                   "/api/tee_callback"
               ))
               .header("Content-Type", "application/json; charset=utf-8")
