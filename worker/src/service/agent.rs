@@ -27,6 +27,18 @@ pub struct AnswerCallbackReq {
     tee_credential: TEECredential,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnswerReq {
+    pub request_id: String,
+    pub node_id: String,
+    pub model: String,
+    pub prompt: String,
+    pub answer: String,
+    pub attestation: String,
+    pub attest_signature: String,
+    pub elapsed: i32,
+}
+
 
 pub async fn start_agent(
   answer_ok_receiver: UnboundedReceiver<TEEResp>,
@@ -71,24 +83,15 @@ pub async fn start_agent_client(
 
           let mut sig_hex = String::new();
           let base64_attest = base64::encode(answer.document.0.clone());
-          let body = AnswerCallbackReq {
+          let body = AnswerReq {
             node_id: "".into(),
             request_id: answer.request_id.clone(),
             model: answer.model_name.clone(),
             prompt: answer.prompt.clone(),
             answer: answer.answer.clone(),
-            elapsed: answer.elapsed,
-            selected: answer.selected,
-            vrf_proof: VRFProof {
-                vrf_prompt_hash: answer.vrf_prompt_hash.clone(),
-                vrf_random_value: answer.vrf_random_value.clone(),
-                vrf_verify_pubkey: answer.vrf_verify_pubkey.clone(),
-                vrf_proof: answer.vrf_proof.clone(),
-            },
-            tee_credential: TEECredential {
-                tee_attestation: base64_attest,
-                tee_attest_signature: sig_hex,
-            }
+            elapsed: answer.elapsed as _,
+            attestation: base64_attest,
+            attest_signature: sig_hex,
         };
 
           let client = Client::new();
