@@ -32,10 +32,10 @@ async fn question(
     agent_state: web::Data<Arc<AgentStateData>>,
 ) -> web::Json<Value> {
     tracing::info!("Receive request, body = {:?}", quest);
-    let mut prompt_req = PromptReq {
-      request_id: "todo!()".to_owned(),
+    let prompt_req = PromptReq {
+      request_id: quest.request_id.clone(),
       model_name: "./llama-2-7b-chat.Q4_0.gguf".to_owned(),
-      prompt: "How to combine AI and blockchain?".to_owned(),
+      prompt: quest.prompt.clone(),
       top_p: 0.95,
       temperature: 0.0,
       n_predict: 128,
@@ -43,7 +43,6 @@ async fn question(
       vrf_precision: 6,
       vrf_prompt_hash: "sfas".to_owned(),
   };
-    prompt_req.prompt = "How to combine AI and blockchain?".into();
     let prompt = tee_llm::nitro_llm::TEEReq::PromptReq(prompt_req);
     agent_state.prompt_sender.send(prompt).unwrap();
     let json_data = json!({

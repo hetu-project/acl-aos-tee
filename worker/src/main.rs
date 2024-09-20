@@ -7,7 +7,7 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
-    let rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
+    let rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| "debug".to_string());
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::new(rust_log))
         .init();
