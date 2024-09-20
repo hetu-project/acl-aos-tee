@@ -94,6 +94,8 @@ pub async fn start_agent_client(
             attest_signature: sig_hex,
         };
 
+        tracing::info!("receive {:#?}", body);
+
           let client = Client::new();
           let result = client
               .post(format!(
