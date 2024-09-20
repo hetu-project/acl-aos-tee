@@ -15,6 +15,7 @@ tracing.workspace = true
 bincode.workspace = true
 nix.workspace = true
 reqwest.workspace = true
+base64.workspace = true
 
 tee_llm.workspace = true
 

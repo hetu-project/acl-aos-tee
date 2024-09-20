@@ -1,15 +1,34 @@
 use std::sync::Arc;
 
 use actix_web::{web, get, post};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tee_llm::nitro_llm::PromptReq;
 
 use crate::service::agent::AgentStateData;
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct InferParams {
+    pub temperature: f32,
+    pub top_p: f32,
+    pub max_tokens: u32,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct QuestionReq {
+    pub request_id: String,
+    pub node_id: String,
+    pub model: String,
+    pub prompt: String,
+    pub params: InferParams,
+    pub prompt_hash: String,
+    pub signature: String,
+}
 /// WRITE API
 // question input a prompt, and async return success, the answer callback later
 #[post("/api/v1/question")]
 async fn question(
-    quest: web::Json<Value>,
+    quest: web::Json<QuestionReq>,
     agent_state: web::Data<Arc<AgentStateData>>,
 ) -> web::Json<Value> {
     tracing::info!("Receive request, body = {:?}", quest);
