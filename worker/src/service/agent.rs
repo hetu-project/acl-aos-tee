@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::service::llm::{TEEReq, TEEResp};
 use actix_web::{middleware, web, App, HttpServer};
@@ -6,10 +6,12 @@ use operator_runer::api::request::{TEECredential, VRFProof};
 use serde::{Deserialize, Serialize};
 use tokio::{join, sync::mpsc::{UnboundedReceiver, UnboundedSender}};
 use reqwest::Client;
+use tokio::sync::mpsc::unbounded_channel;
 
 pub mod router;
 pub struct AgentStateData {
-  prompt_sender: UnboundedSender<TEEReq>,
+  pub prompt_sender: UnboundedSender<TEEReq>,
+  pub remain_task: i32,
 }
 
 
@@ -44,8 +46,9 @@ pub async fn start_agent(
   answer_ok_receiver: UnboundedReceiver<TEEResp>,
   prompt_sender: UnboundedSender<TEEReq>,
 ){
-  let server = tokio::spawn(start_agent_server(prompt_sender));
-  let client = tokio::spawn(start_agent_client(answer_ok_receiver));
+  let (remain_task_tx, remain_task_rx) = unbounded_channel::<i32>();
+  let server = tokio::spawn(start_agent_server(prompt_sender, remain_task_rx));
+  let client = tokio::spawn(start_agent_client(answer_ok_receiver, remain_task_tx));
   let _s = join!(server, client);
 }
 
@@ -53,13 +56,28 @@ pub async fn start_agent(
 
 pub async fn start_agent_server(
   prompt_sender: UnboundedSender<TEEReq>,
+  mut remain_task_rx: UnboundedReceiver<i32>,
 ){
-  let agent_state = Arc::new(AgentStateData{
-    prompt_sender,
+
+  let agent_state = web::Data::new(Mutex::new(AgentStateData{
+    prompt_sender: prompt_sender.clone(),
+    remain_task: 1,
+  }));
+  let s = agent_state.clone();
+
+  tokio::spawn(async move{
+    loop {
+      if let Some(_) = remain_task_rx.recv().await {
+        if let Ok(mut a)  = s.get_ref().lock() {
+          a.remain_task = 1;
+        }
+      }
+    }
   });
 
-  let app = move || {App::new()
-    .app_data(web::Data::new(agent_state.clone()))
+  let app = move || {
+    App::new()
+    .app_data(agent_state.clone())
     .configure(router::service)
   };
 
@@ -75,6 +93,7 @@ pub async fn start_agent_server(
 
 pub async fn start_agent_client(
   mut answer_ok_receiver: UnboundedReceiver<TEEResp>,
+  remain_task_tx: UnboundedSender<i32>,
 ){
   loop {
       if let Some(res) = answer_ok_receiver.recv().await {
@@ -92,6 +111,9 @@ pub async fn start_agent_client(
             elapsed: answer.elapsed as _,
             attestation: base64_attest,
             attest_signature: sig_hex,
+        };
+        if let Ok(_) = remain_task_tx.send(1) {
+            tracing::debug!("remain task add 1");
         };
 
         tracing::info!("receive {:#?}", body);

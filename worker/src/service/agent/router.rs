@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use actix_web::{web, get, post};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tee_llm::nitro_llm::PromptReq;
@@ -29,8 +29,8 @@ pub struct QuestionReq {
 #[post("/api/v1/question")]
 async fn question(
     quest: web::Json<QuestionReq>,
-    agent_state: web::Data<Arc<AgentStateData>>,
-) -> web::Json<Value> {
+    agent_state: web::Data<Mutex<AgentStateData>>,
+) -> impl Responder {
     tracing::info!("Receive request, body = {:?}", quest);
     let prompt_req = PromptReq {
       request_id: quest.request_id.clone(),
@@ -44,16 +44,43 @@ async fn question(
       vrf_prompt_hash: "sfas".to_owned(),
   };
     let prompt = tee_llm::nitro_llm::TEEReq::PromptReq(prompt_req);
-    agent_state.prompt_sender.send(prompt).unwrap();
+     let mut ag = agent_state.lock().unwrap();
+     tracing::debug!("remain_task start {}", ag.remain_task);
+     if ag.remain_task <= 0 {
+      return HttpResponse::ServiceUnavailable().json(json!({}));
+     }
+     ag.remain_task  = ag.remain_task - 1;
+    if let Err(err) = ag.prompt_sender.send(prompt){
+      tracing::error!("send prompt req to tee error {:#?}", err);
+      ag.remain_task  = ag.remain_task + 1;
+      return HttpResponse::ServiceUnavailable().json(json!(""));
+    }
+    tracing::debug!("remain_task end {}", ag.remain_task);
     let json_data = json!({
       "answer": ""
     });
-    return web::Json(json_data);
+    return HttpResponse::Ok().json(json_data);
 }
+
+
+// question input a prompt, and async return success, the answer callback later
+#[get("/api/v1/status")]
+async fn status(
+    // quest: web::Json<QuestionReq>,
+    agent_state: web::Data<Mutex<AgentStateData>>,
+) -> impl Responder {
+  let ag = agent_state.lock().unwrap();
+    let json_data = json!({
+      "remain_task": ag.remain_task,
+    });
+    return HttpResponse::Ok().json(json_data);
+}
+
 
 
 pub fn service(cfg: &mut web::ServiceConfig) {
   cfg
   .service(question)
+  .service(status)
   ;
 }
