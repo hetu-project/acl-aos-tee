@@ -1,8 +1,8 @@
-# AOS TEE Operator
+# AI4Science OS TEE Operator
 
 ## Overview
 
-The AOS TEE Operator is a role of EigenAVS in Hetu Protocols. 
+The AI4Science OS(AOS) TEE Operator is a role of EigenAVS in Hetu Protocols. 
 
 By registering with AOS on Dispatcher, the operator could service the AI inference verification task.The staker can delegate funds to an operator by Delegation Manager contract.
 
