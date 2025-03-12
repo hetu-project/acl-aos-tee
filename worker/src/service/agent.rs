@@ -107,53 +107,62 @@ pub async fn start_agent_client(
   mut answer_ok_receiver: UnboundedReceiver<TEEResp>,
   remain_task_tx: UnboundedSender<i32>,
 ){
-  loop {
-      if let Some(res) = answer_ok_receiver.recv().await {
-        tracing::info!("receive {:#?}", res);
-        if let TEEResp::AnswerResp(answer) = res {
+    let shutdown = tokio::signal::ctrl_c();
 
-          let mut sig_hex = String::new();
-          let base64_attest = base64::encode(answer.document.0.clone());
-          let body = AnswerReq {
-            node_id: "".into(),
-            request_id: answer.request_id.clone(),
-            model: answer.model_name.clone(),
-            prompt: answer.prompt.clone(),
-            answer: answer.answer.clone(),
-            elapsed: answer.elapsed as _,
-            attestation: base64_attest,
-            attest_signature: sig_hex,
-        };
-        if let Ok(_) = remain_task_tx.send(1) {
-            tracing::debug!("remain task add 1");
-        };
-
-        tracing::info!("receive {:#?}", body);
-
-          let client = Client::new();
-          let result = client
-              .post(format!(
-                  "{}{}",
-                  "http://127.0.0.1:21001",
-                  "/api/tee_callback"
-              ))
-              .header("Content-Type", "application/json; charset=utf-8")
-              .json(&body)
-              .send()
-              .await;
-
-            match result {
-                Ok(res) => {
-                  tracing::debug!("{}", res.status());
-
-                },
-                Err(err) => {
-                  tracing::error!("{}", err);
-                },
-            }
-            
+    tokio::select! {
+        _ = shutdown => {
+            println!("Received Ctrl+C, stopping task...");
         }
-      }
-  }
+        _ = async {
+            loop {
+                if let Some(res) = answer_ok_receiver.recv().await {
+                    tracing::info!("receive {:#?}", res);
+                    if let TEEResp::AnswerResp(answer) = res {
+
+                        let mut sig_hex = String::new();
+                        let base64_attest = base64::encode(answer.document.0.clone());
+                        let body = AnswerReq {
+                            node_id: "".into(),
+                            request_id: answer.request_id.clone(),
+                            model: answer.model_name.clone(),
+                            prompt: answer.prompt.clone(),
+                            answer: answer.answer.clone(),
+                            elapsed: answer.elapsed as _,
+                            attestation: base64_attest,
+                            attest_signature: sig_hex,
+                        };
+                        if let Ok(_) = remain_task_tx.send(1) {
+                            tracing::debug!("remain task add 1");
+                        };
+
+                        tracing::info!("receive {:#?}", body);
+
+                        let client = Client::new();
+                        let result = client
+                            .post(format!(
+                                    "{}{}",
+                                    "http://127.0.0.1:21001",
+                                    "/api/tee_callback"
+                            ))
+                            .header("Content-Type", "application/json; charset=utf-8")
+                            .json(&body)
+                            .send()
+                            .await;
+
+                        match result {
+                            Ok(res) => {
+                                tracing::debug!("{}", res.status());
+
+                            },
+                            Err(err) => {
+                                tracing::error!("{}", err);
+                            },
+                        }
+
+                    }
+                }
+            }
+        } => {}
+    }
 }
 
