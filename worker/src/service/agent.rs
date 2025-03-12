@@ -2,7 +2,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::service::llm::{TEEReq, TEEResp};
 use actix_web::{middleware, web, App, HttpServer};
-use operator_runer::api::request::{TEECredential, VRFProof};
 use serde::{Deserialize, Serialize};
 use tokio::{join, sync::mpsc::{UnboundedReceiver, UnboundedSender}};
 use reqwest::Client;
@@ -14,6 +13,19 @@ pub struct AgentStateData {
   pub remain_task: i32,
 }
 
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct VRFProof {
+    pub vrf_prompt_hash: String,
+    pub vrf_random_value: String,
+    pub vrf_verify_pubkey: String,
+    pub vrf_proof: String,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct TEECredential {
+    pub tee_attestation: String,
+    pub tee_attest_signature: String,
+}
 
 
 #[derive(Serialize, Deserialize, Default, Debug)]

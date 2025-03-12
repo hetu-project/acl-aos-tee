@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 tokio.workspace = true
 tracing-subscriber.workspace = true
-operator-runer.workspace = true
 anyhow.workspace = true
 actix-web.workspace = true
 serde.workspace = true
