@@ -4,9 +4,26 @@ use tee_worker::service;
 use tee_worker::service::llm::{TEEReq, TEEResp};
 use tokio::sync::mpsc::unbounded_channel;
 use tracing_subscriber::EnvFilter;
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(name = "tee-worker")]
+#[command(version = "1.0")]
+#[command(about = "aos tee worker")]
+struct Args {
+    #[arg(required = true, short, long)]
+    hostname: String,
+
+    #[arg(required = true, short, long)]
+    operator: String,
+}
 
 #[tokio::main]
 async fn main() {
+    let args = Args::parse();
+    let host_name = args.hostname;
+    let operator_host = args.operator;
+
     let rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| "debug".to_string());
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::new(rust_log))
@@ -16,7 +33,7 @@ async fn main() {
     let (prompt_sender, prompt_receiver) = unbounded_channel::<TEEReq>();
     let (answer_ok_sender, answer_ok_receiver) = unbounded_channel::<TEEResp>();
     let tee = tokio::spawn(connect_tee_llm_worker(prompt_receiver, answer_ok_sender));
-    let agent = tokio::spawn(service::agent::start_agent(answer_ok_receiver, prompt_sender));
+    let agent = tokio::spawn(service::agent::start_agent(answer_ok_receiver, prompt_sender, host_name, operator_host));
 
     let res = tokio::try_join!(
         tee,

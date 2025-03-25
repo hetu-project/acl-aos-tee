@@ -57,10 +57,12 @@ pub struct AnswerReq {
 pub async fn start_agent(
   answer_ok_receiver: UnboundedReceiver<TEEResp>,
   prompt_sender: UnboundedSender<TEEReq>,
+  host_name: String,
+  operator_host: String,
 ){
   let (remain_task_tx, remain_task_rx) = unbounded_channel::<i32>();
-  let server = tokio::spawn(start_agent_server(prompt_sender, remain_task_rx));
-  let client = tokio::spawn(start_agent_client(answer_ok_receiver, remain_task_tx));
+  let server = tokio::spawn(start_agent_server(prompt_sender, remain_task_rx, host_name));
+  let client = tokio::spawn(start_agent_client(answer_ok_receiver, remain_task_tx, operator_host));
   let _s = join!(server, client);
 }
 
@@ -69,6 +71,7 @@ pub async fn start_agent(
 pub async fn start_agent_server(
   prompt_sender: UnboundedSender<TEEReq>,
   mut remain_task_rx: UnboundedReceiver<i32>,
+  host_name: String,
 ){
 
   let agent_state = web::Data::new(Mutex::new(AgentStateData{
@@ -94,7 +97,7 @@ pub async fn start_agent_server(
   };
 
     HttpServer::new(app)
-    .bind(("0.0.0.0", 3000))
+    .bind(host_name)
     .expect("Failed to bind address")
     .run()
     .await
@@ -106,6 +109,7 @@ pub async fn start_agent_server(
 pub async fn start_agent_client(
   mut answer_ok_receiver: UnboundedReceiver<TEEResp>,
   remain_task_tx: UnboundedSender<i32>,
+  operator_host: String,
 ){
     let shutdown = tokio::signal::ctrl_c();
 
@@ -141,7 +145,7 @@ pub async fn start_agent_client(
                         let result = client
                             .post(format!(
                                     "{}{}",
-                                    "http://127.0.0.1:21001",
+                                    operator_host,
                                     "/api/tee_callback"
                             ))
                             .header("Content-Type", "application/json; charset=utf-8")
