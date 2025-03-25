@@ -1,10 +1,10 @@
-# AI4Science OS TEE Operator
+# AI4Science OS TEE Worker 
 
 ## Overview
 
-The AI4Science OS(AOS) TEE Operator is a role of EigenAVS in Hetu Protocols. 
+The AI4Science OS(AOS) TEE Worker is a worker sevice of AOS operator.
 
-By registering with AOS on Dispatcher, the operator could service the AI inference verification task.The staker can delegate funds to an operator by Delegation Manager contract.
+By registering with AOS on Operator, the worker could service the AI inference verification task.
 
 The [Llm-In-TEE](#llm-in-tee) is a novelty framworks to run a TEE verification node service. And the AOS TEE Operators are TEE workers and building on Llm-In-TEE framwork.
 
@@ -32,16 +32,14 @@ The Chronos is a novel logical clock system designed for open networks with Byza
 
 ## Compile
 
-### Build from source
+## Build from source
 
 ```bash
-git clone https://github.com/hetu-project/aos-tee-operator.git
+git clone https://github.com/hetu-project/acl-aos-tee.git
 
-cd llm-in-tee
+cd acl-aos-tee
 
 git submodule update --init --recursive
-
-cargo build --features nitro-enclaves --release
 ```
 
 ## Run TEE Operator
@@ -54,24 +52,31 @@ Because this base operator system is more friendly for using of the aws nitro en
 ### Prepare Env & Configuration
 
 1. Prepare Env & install dependency tools
-```sh
-sudo sudo dnf upgrade 
-sudo dnf install -y tmux htop openssl-devel perl docker-24.0.5-1.amzn2023.0.3 aws-nitro-enclaves-cli aws-nitro-enclaves-cli-devel
-``` 
-
-2. Configuration
-
-Please `cat /etc/nitro_enclaves/allocator.yaml` and set cpu_count & memory_mib. For tee_vlc: just `2 core + 1024 M` is enough, for tee_llm: `4 core + 16384 M` at least. Update the file and save it.
-
-3. run `init.sh`
 
 ```sh
 cd scripts
 sudo chmod +x init_env.sh
 ./init_env.sh
+``` 
+
+2. Download the Model
+
+```sh
+wget https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_0.gguf
+mv llama-2-7b-chat.Q4_0.gguf ./models
+```
+
+3. Start the TEE Environment
+
+```sh
+cd scripts
+sudo chmod +x run_tee.sh
+./run_tee.sh
 ```  
-Remember please re-run the script when you update the `/etc/nitro_enclaves/allocator.yaml`.
 
-### Run Operator
+4. Start the TEE Operator
 
-Please see [Run TEE Operator](./operator/README.md) for more detail information.
+```sh
+cargo build --release -p tee-worker --bin tee-worker
+./target/release/tee-worker
+```
